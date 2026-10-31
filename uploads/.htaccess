@@ -1,0 +1,8 @@
+# Chặn toàn bộ truy cập trực tiếp vào thư mục uploads
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
