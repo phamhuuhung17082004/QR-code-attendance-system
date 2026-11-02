@@ -36,6 +36,7 @@ if ($_SESSION['usertype'] != 'ADMIN') {
         <div class="col-12">
             <div class="bg-light rounded h-100 p-4">
                 <form action="api_subject.php?type=update" method="post">
+                    <?= csrf_input() ?>
                     <div class="row mb-3">
                         <label for="inputEmail3" class="col-sm-3 col-form-label">Mã môn học</label>
                         <div class="col-sm-9">

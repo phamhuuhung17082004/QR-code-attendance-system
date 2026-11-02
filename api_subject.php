@@ -1,26 +1,40 @@
 <?php
-// print_r($_POST);
 require "conn.php";
-session_start();
+require_once __DIR__ . '/lib/security.php';
+require_once __DIR__ . '/lib/db.php';
+security_start_session();
 
-if ($_SESSION['usertype'] != 'ADMIN') {
-    session_destroy();
+if (empty($_SESSION['logged']) || ($_SESSION['usertype'] ?? '') !== 'ADMIN') {
     header("location: login.php");
     exit();
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_is_valid($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    exit('Yêu cầu quản trị không hợp lệ.');
 }
 
 if (isset($_SESSION['logged']) && $_SESSION['logged'] == true) {
 
     if (isset($_GET['type']) && $_GET['type'] == "add") {
-        $subjectcode = mysqli_escape_string($conn, $_POST['subjectcode']);
-        $description = mysqli_escape_string($conn, $_POST['description']);
-        $abbrevation = mysqli_escape_string($conn, $_POST['abbrevation']);
-        $semester = mysqli_escape_string($conn, $_POST['semester']);
-        $branch = mysqli_escape_string($conn, $_POST['branch']);
-        $teacherid = mysqli_escape_string($conn, $_POST['teacherid']);
+        $subjectcode = filter_var($_POST['subjectcode'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $description = trim((string)($_POST['description'] ?? ''));
+        $abbrevation = trim((string)($_POST['abbrevation'] ?? ''));
+        $semester = filter_var($_POST['semester'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $branch = trim((string)($_POST['branch'] ?? ''));
+        $teacherid = filter_var($_POST['teacherid'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-        $sql = "INSERT INTO `subjects`(`subject_code`, `name`, `abbreviation`, `semester`, `branch`, `teacher_id`) VALUES ('$subjectcode','$description','$abbrevation','$semester','$branch','$teacherid')";
-        $result = mysqli_query($conn, $sql);
+        if (!$subjectcode || $description === '' || $abbrevation === '' || !$semester || $branch === '' || !$teacherid) {
+            $_SESSION['msg'] = '<div class="alert alert-danger mb-2" role="alert">Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.</div>';
+            header("location: subject_details.php");
+            exit();
+        }
+
+        $result = db_exec(
+            'INSERT INTO subjects (subject_code, name, abbreviation, semester, branch, teacher_id) VALUES (?, ?, ?, ?, ?, ?)',
+            'issisi',
+            [(int)$subjectcode, $description, $abbrevation, (int)$semester, $branch, (int)$teacherid]
+        ) !== false;
+
         if ($result) {
             $_SESSION['msg'] = '<div class="alert alert-success mb-2" role="alert">
         Thêm môn học thành công.
@@ -37,10 +51,8 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] == true) {
     }
 
     if (isset($_GET['type']) && $_GET['type'] == "delete") {
-        $enroll = mysqli_escape_string($conn, $_GET['enroll']);
-
-        $sql = "DELETE FROM `subjects` WHERE subject_code='$enroll'";
-        $result = mysqli_query($conn, $sql);
+        $enroll = filter_var($_POST['enroll'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $result = $enroll && db_exec('DELETE FROM subjects WHERE subject_code = ?', 'i', [(int)$enroll]) !== false;
         if ($result) {
             $_SESSION['msg'] = '<div class="alert alert-success mb-2" role="alert">
         Xóa môn học thành công.
@@ -57,16 +69,25 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] == true) {
     }
 
     if (isset($_GET['type']) && $_GET['type'] == "update") {
-        $subjectcode = mysqli_escape_string($conn, $_POST['subjectcode']);
-        $description = mysqli_escape_string($conn, $_POST['description']);
-        $abbrevation = mysqli_escape_string($conn, $_POST['abbrevation']);
-        $semester = mysqli_escape_string($conn, $_POST['semester']);
-        $branch = mysqli_escape_string($conn, $_POST['branch']);
-        $teacherid = mysqli_escape_string($conn, $_POST['teacherid']);
+        $subjectcode = filter_var($_POST['subjectcode'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $description = trim((string)($_POST['description'] ?? ''));
+        $abbrevation = trim((string)($_POST['abbrevation'] ?? ''));
+        $semester = filter_var($_POST['semester'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $branch = trim((string)($_POST['branch'] ?? ''));
+        $teacherid = filter_var($_POST['teacherid'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-        $sql = "UPDATE `subjects` SET `name`='$description',`abbreviation`='$abbrevation',`semester`='$semester',`branch`='$branch',`teacher_id`='$teacherid' WHERE `subject_code`=$subjectcode";
+        if (!$subjectcode || $description === '' || $abbrevation === '' || !$semester || $branch === '' || !$teacherid) {
+            $_SESSION['msg'] = '<div class="alert alert-danger mb-2" role="alert">Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.</div>';
+            header("location: subject_details.php");
+            exit();
+        }
 
-        $result = mysqli_query($conn, $sql);
+        $result = db_exec(
+            'UPDATE subjects SET name = ?, abbreviation = ?, semester = ?, branch = ?, teacher_id = ? WHERE subject_code = ?',
+            'ssisii',
+            [$description, $abbrevation, (int)$semester, $branch, (int)$teacherid, (int)$subjectcode]
+        ) !== false;
+
         if ($result) {
             $_SESSION['msg'] = '<div class="alert alert-success mb-2" role="alert">
         Cập nhật thông tin môn học thành công.
