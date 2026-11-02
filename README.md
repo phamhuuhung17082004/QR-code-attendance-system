@@ -35,6 +35,8 @@ The QR Code-Based Attendance System is a robust attendance management solution d
 ## Vendored Libraries
 - **lbuchs/WebAuthn v2.2.0** (MIT License): PHP WebAuthn/FIDO2 server library vendored at `lib/webauthn/` (source: https://github.com/lbuchs/WebAuthn).
 - **qrcodejs** (MIT License): Client-side JavaScript QR code generator vendored at `js/vendor/qrcode.min.js` (source: https://github.com/davidshimjs/qrcodejs).
+- **Instascan** (MIT License): Real-time webcam QR code scanner vendored at `js/vendor/instascan.min.js` (source: https://github.com/schmich/instascan-builds).
+- **face-api.js model weights** (MIT License): Pre-trained weights for TinyFaceDetector, FaceLandmark68Net, and FaceRecognitionNet vendored at `lib/face-api/models/` (source: https://github.com/justadudewhohacks/face-api.js).
 
 ## Live Demo
 
