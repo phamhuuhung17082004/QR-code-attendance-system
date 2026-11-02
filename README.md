@@ -77,6 +77,10 @@ Check out the live demo of the project [here](https://sagarbhoi.in/project-demos
       ```sh
       mysql -u root -p qrattendance < database_passkey_migration.sql
       ```
+    - Run face approval migration `database_face_approval_migration.sql` to add approval status to `student_face_profiles`:
+      ```sh
+      mysql -u root -p qrattendance < database_face_approval_migration.sql
+      ```
 
 3. **Configure the Application**:
     - Create a `.env` file in the root directory:

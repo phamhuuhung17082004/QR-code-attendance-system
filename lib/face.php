@@ -88,7 +88,7 @@ function face_distance(array $first, array $second): float
 function face_profile(int $enrollmentNo): ?array
 {
     return db_row(
-        'SELECT enrollment_no, descriptor, consented_at, updated_at FROM student_face_profiles WHERE enrollment_no = ? LIMIT 1',
+        'SELECT enrollment_no, descriptor, status, consented_at, updated_at FROM student_face_profiles WHERE enrollment_no = ? LIMIT 1',
         'i',
         [$enrollmentNo]
     );
@@ -119,16 +119,20 @@ function face_store_profile(int $enrollmentNo, array $descriptors): array
         }
     }
 
+    $status = (string)cfg('require_device_approval') === '1' ? 'pending' : 'approved';
     $encoded = json_encode($average, JSON_PRESERVE_ZERO_FRACTION);
     if ($encoded === false || db_exec(
-        'INSERT INTO student_face_profiles (enrollment_no, descriptor, consented_at, created_at, updated_at)
-         VALUES (?, ?, NOW(), NOW(), NOW())',
-        'is',
-        [$enrollmentNo, $encoded]
+        'INSERT INTO student_face_profiles (enrollment_no, descriptor, status, consented_at, created_at, updated_at)
+         VALUES (?, ?, ?, NOW(), NOW(), NOW())',
+        'iss',
+        [$enrollmentNo, $encoded, $status]
     ) === false) {
         return ['ok' => false, 'message' => 'Không thể lưu mẫu khuôn mặt. Hãy kiểm tra migration cơ sở dữ liệu.'];
     }
-    return ['ok' => true, 'message' => 'Đã đăng ký mẫu khuôn mặt.'];
+    $message = $status === 'pending'
+        ? 'Đã đăng ký mẫu khuôn mặt. Hồ sơ đang chờ quản trị viên duyệt trước khi có thể điểm danh.'
+        : 'Đã đăng ký mẫu khuôn mặt.';
+    return ['ok' => true, 'message' => $message, 'status' => $status];
 }
 
 function face_match_profile(int $enrollmentNo, $candidate): array
@@ -136,6 +140,9 @@ function face_match_profile(int $enrollmentNo, $candidate): array
     $profile = face_profile($enrollmentNo);
     if (!$profile) {
         return ['ok' => false, 'message' => 'Bạn chưa đăng ký khuôn mặt. Vào Hồ sơ cá nhân để đăng ký trước khi điểm danh.'];
+    }
+    if (($profile['status'] ?? 'approved') === 'pending') {
+        return ['ok' => false, 'message' => 'Hồ sơ khuôn mặt của bạn đang chờ quản trị viên duyệt.'];
     }
     $stored = face_parse_descriptor($profile['descriptor']);
     $submitted = face_parse_descriptor($candidate);

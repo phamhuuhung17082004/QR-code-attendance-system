@@ -65,6 +65,23 @@ if ($action === 'approve') {
     } else {
         admin_passkey_reply(false, 'Không thể thu hồi thiết bị.', $isJson);
     }
+} elseif ($action === 'approve_face') {
+    $enrollmentNo = filter_var($_POST['enrollment_no'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if (!$enrollmentNo) {
+        admin_passkey_reply(false, 'Mã số sinh viên không hợp lệ.', $isJson);
+    }
+    $res = db_exec(
+        "UPDATE student_face_profiles SET status = 'approved', updated_at = NOW() WHERE enrollment_no = ? AND status = 'pending'",
+        'i',
+        [(int)$enrollmentNo]
+    );
+    if ($res === false) {
+        admin_passkey_reply(false, 'Không thể duyệt hồ sơ khuôn mặt. Hãy kiểm tra cơ sở dữ liệu.', $isJson);
+    } elseif ($res === 0) {
+        admin_passkey_reply(false, 'Hồ sơ khuôn mặt không ở trạng thái chờ duyệt.', $isJson);
+    } else {
+        admin_passkey_reply(true, 'Đã duyệt hồ sơ khuôn mặt thành công.', $isJson);
+    }
 } elseif ($action === 'delete_face') {
     $enrollmentNo = filter_var($_POST['enrollment_no'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if (!$enrollmentNo) {
@@ -83,4 +100,3 @@ if ($action === 'approve') {
 } else {
     admin_passkey_reply(false, 'Hành động không hợp lệ.', $isJson);
 }
-

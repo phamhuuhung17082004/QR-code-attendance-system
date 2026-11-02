@@ -37,8 +37,12 @@ $enrollmentNo = (int)$_SESSION['enrollment_no'];
 if (face_mode() === 'off') {
     face_challenge_response(200, true, 'Không yêu cầu xác minh khuôn mặt.', ['required' => false]);
 }
-if (!face_profile($enrollmentNo)) {
+$profile = face_profile($enrollmentNo);
+if (!$profile) {
     face_challenge_response(422, false, 'Bạn chưa đăng ký khuôn mặt. Vào Hồ sơ cá nhân để đăng ký trước khi điểm danh.');
+}
+if (($profile['status'] ?? 'approved') === 'pending') {
+    face_challenge_response(422, false, 'Hồ sơ khuôn mặt của bạn đang chờ quản trị viên duyệt.');
 }
 
 $challenge = face_issue_challenge((int)$session['id'], $enrollmentNo);

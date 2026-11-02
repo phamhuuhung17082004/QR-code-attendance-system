@@ -18,6 +18,14 @@ $passkeys = db_all(
      ORDER BY p.id DESC"
 );
 
+$pendingFaces = db_all(
+    "SELECT f.enrollment_no, s.name AS student_name, f.status, f.created_at, f.updated_at
+     FROM student_face_profiles f
+     LEFT JOIN students s ON f.enrollment_no = s.enrollment_no
+     WHERE f.status = 'pending'
+     ORDER BY f.created_at DESC"
+);
+
 require __DIR__ . '/header.php';
 ?>
 <div class="container pt-3 px-4 m-0">
@@ -39,6 +47,68 @@ require __DIR__ . '/header.php';
         }
         ?>
     </div>
+
+    <!-- Khối hồ sơ khuôn mặt chờ duyệt Bắt đầu -->
+    <div class="row bg-light rounded mx-0 mb-4">
+        <div class="col-12">
+            <div class="bg-light rounded h-100 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="mb-0">Danh sách hồ sơ khuôn mặt chờ duyệt</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Mã SV</th>
+                                <th scope="col">Họ và tên</th>
+                                <th scope="col">Trạng thái</th>
+                                <th scope="col">Ngày đăng ký</th>
+                                <th scope="col" style="min-width: 200px;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($pendingFaces)): ?>
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Không có hồ sơ khuôn mặt nào đang chờ duyệt.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($pendingFaces as $pf): ?>
+                                    <tr>
+                                        <td><strong><?= htmlspecialchars((string)$pf['enrollment_no'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+                                        <td><?= htmlspecialchars((string)($pf['student_name'] ?? 'Chưa rõ'), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><span class="badge bg-warning text-dark">Chờ duyệt</span></td>
+                                        <td><?= htmlspecialchars((string)$pf['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                <form method="post" action="api_passkey_admin.php" class="d-inline" onsubmit="return confirm('Xác nhận phê duyệt hồ sơ khuôn mặt của sinh viên <?= htmlspecialchars((string)$pf['enrollment_no'], ENT_QUOTES, 'UTF-8') ?>?');">
+                                                    <?= csrf_input() ?>
+                                                    <input type="hidden" name="action" value="approve_face">
+                                                    <input type="hidden" name="enrollment_no" value="<?= (int)$pf['enrollment_no'] ?>">
+                                                    <button type="submit" class="btn btn-sm btn-success" title="Phê duyệt hồ sơ khuôn mặt">
+                                                        <i class="fas fa-check me-1"></i>Duyệt
+                                                    </button>
+                                                </form>
+
+                                                <form method="post" action="api_passkey_admin.php" class="d-inline" onsubmit="return confirm('Xác nhận từ chối/đặt lại mẫu khuôn mặt của sinh viên <?= htmlspecialchars((string)$pf['enrollment_no'], ENT_QUOTES, 'UTF-8') ?>?');">
+                                                    <?= csrf_input() ?>
+                                                    <input type="hidden" name="action" value="delete_face">
+                                                    <input type="hidden" name="enrollment_no" value="<?= (int)$pf['enrollment_no'] ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Từ chối/Đặt lại mẫu khuôn mặt">
+                                                        <i class="fas fa-times me-1"></i>Từ chối/Đặt lại
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Khối hồ sơ khuôn mặt chờ duyệt Kết thúc -->
 
     <div class="row bg-light rounded mx-0">
         <div class="col-12">
@@ -128,4 +198,3 @@ require __DIR__ . '/header.php';
 <!-- Nội dung chính Kết thúc -->
 
 <?php require __DIR__ . '/footer.php'; ?>
-
