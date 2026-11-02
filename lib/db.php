@@ -17,25 +17,35 @@ define('QRCAS_DB_LOADED', true);
 function db_stmt(string $sql, string $types = '', array $params = [])
 {
     global $conn;
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        error_log('[QRCAS] prepare failed: ' . $conn->error . ' | ' . $sql);
-        return false;
-    }
-    if ($types !== '') {
-        $stmt->bind_param($types, ...$params);
-    }
-    if (!$stmt->execute()) {
-        // 1062 = trùng khóa duy nhất: để nơi gọi tự xử lý qua $conn->errno
-        if ($stmt->errno !== 1062) {
-            error_log('[QRCAS] execute failed: ' . $stmt->error . ' | ' . $sql);
+    try {
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            error_log('[QRCAS] prepare failed: ' . $conn->error);
+            $GLOBALS['qrcas_last_errno'] = (int)$conn->errno;
+            return false;
         }
-        $GLOBALS['qrcas_last_errno'] = $stmt->errno;
-        $stmt->close();
+        if ($types !== '') {
+            $stmt->bind_param($types, ...$params);
+        }
+        if (!$stmt->execute()) {
+            // 1062 = trùng khóa duy nhất: để nơi gọi tự xử lý qua $conn->errno
+            if ($stmt->errno !== 1062) {
+                error_log('[QRCAS] execute failed: ' . $stmt->error);
+            }
+            $GLOBALS['qrcas_last_errno'] = (int)$stmt->errno;
+            $stmt->close();
+            return false;
+        }
+        $GLOBALS['qrcas_last_errno'] = 0;
+        return $stmt;
+    } catch (mysqli_sql_exception $e) {
+        $errno = (int)$e->getCode();
+        $GLOBALS['qrcas_last_errno'] = $errno;
+        if ($errno !== 1062) {
+            error_log('[QRCAS] db_stmt exception: ' . $e->getMessage());
+        }
         return false;
     }
-    $GLOBALS['qrcas_last_errno'] = 0;
-    return $stmt;
 }
 
 function db_last_errno(): int
