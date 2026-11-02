@@ -8,25 +8,31 @@ if ($_SESSION['usertype'] != 'TEACHER') {
     exit();
 }
 
-$teacher_id = $_SESSION['teacher_id'];
+$teacher_id = (int)($_SESSION['teacher_id'] ?? 0);
 $teacher_sql = "SELECT * FROM teachers WHERE `id`=$teacher_id";
 $teacher_res = mysqli_query($conn, $teacher_sql);
 $teacher_row = mysqli_fetch_assoc($teacher_res);
-$branch = $teacher_row['branch'];
+$branch = (string)($teacher_row['branch'] ?? '');
 $subArrstr = "";
 
 $ssql = "SELECT * FROM `subjects` WHERE teacher_id=$teacher_id";
 $sresult = mysqli_query($conn, $ssql);
 while ($row = mysqli_fetch_assoc($sresult)) {
     if (empty($subArrstr)) {
-        $subArrstr = $row['subject_code'];
+        $subArrstr = (int)$row['subject_code'];
     } else {
-        $subArrstr = $subArrstr . "," . $row['subject_code'];
+        $subArrstr = $subArrstr . "," . (int)$row['subject_code'];
     }
 }
 
-$sql = "SELECT * FROM `attendance` WHERE subject_code IN ($subArrstr) AND `branch`='$branch' ORDER BY id DESC";
-$result = mysqli_query($conn, $sql);
+if (!empty($subArrstr)) {
+    $stmt = $conn->prepare("SELECT * FROM `attendance` WHERE subject_code IN ($subArrstr) AND `branch`=? ORDER BY id DESC");
+    $stmt->bind_param('s', $branch);
+    $stmt->execute();
+    $result = $stmt->get_result();
+} else {
+    $result = mysqli_query($conn, "SELECT * FROM `attendance` WHERE 1=0");
+}
 
 // Ánh xạ tên ngày tiếng Anh sang tiếng Việt
 $daysVI = [
@@ -103,13 +109,27 @@ $daysVI = [
 
                 <?php
                 if (isset($_GET['startdate']) && isset($_GET['enddate']) && isset($_GET['subject']) && isset($_GET['batch'])) {
-                    $sdateString = $_GET['startdate'];
-                    $edateString = $_GET['enddate'];
-                    $subject_code = $_GET['subject'];
-                    $batch = $_GET['batch'];
+                    $sdateString = trim((string)$_GET['startdate']);
+                    $edateString = trim((string)$_GET['enddate']);
+                    $subject_code = filter_var($_GET['subject'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                    $batch = trim((string)$_GET['batch']);
 
-                    $sql = "SELECT * FROM attendance WHERE STR_TO_DATE(`date`, '%Y-%m-%d') BETWEEN STR_TO_DATE('$sdateString', '%Y-%m-%d') AND STR_TO_DATE('$edateString', '%Y-%m-%d') AND `subject_code`=$subject_code AND `batch`='$batch' AND `branch`='" . $teacher_row['branch'] . "' ORDER BY id DESC";
-                    $result = mysqli_query($conn, $sql);
+                    $sdt = $sdateString !== '' ? DateTime::createFromFormat('Y-m-d', $sdateString) : false;
+                    $sdateValid = ($sdt && $sdt->format('Y-m-d') === $sdateString);
+
+                    $edt = $edateString !== '' ? DateTime::createFromFormat('Y-m-d', $edateString) : false;
+                    $edateValid = ($edt && $edt->format('Y-m-d') === $edateString);
+
+                    $batchValid = in_array($batch, ['A1', 'A2', 'A3', 'A4', 'A5'], true);
+
+                    if (!$sdateValid || !$edateValid || $subject_code === false || !$batchValid) {
+                        echo '<div class="alert alert-danger mb-4" role="alert">Dữ liệu lọc không hợp lệ. Vui lòng kiểm tra lại ngày, môn học và nhóm.</div>';
+                    } else {
+                        $teacher_branch = (string)($teacher_row['branch'] ?? '');
+                        $stmt = $conn->prepare("SELECT * FROM attendance WHERE STR_TO_DATE(`date`, '%Y-%m-%d') BETWEEN STR_TO_DATE(?, '%Y-%m-%d') AND STR_TO_DATE(?, '%Y-%m-%d') AND `subject_code` = ? AND `batch` = ? AND `branch` = ? ORDER BY id DESC");
+                        $stmt->bind_param('ssiss', $sdateString, $edateString, $subject_code, $batch, $teacher_branch);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
                 ?>
                     <h6>Kết quả lọc: Từ ngày <?php echo ui_h((string)$_GET['startdate']); ?> đến ngày <?php echo ui_h((string)$_GET['enddate']); ?></h6>
                     <div class="table-responsive">
@@ -161,6 +181,7 @@ $daysVI = [
                         </table>
                     </div>
                 <?php
+                    }
                 } else {
                 ?>
                     <div class="table-responsive">

@@ -98,14 +98,28 @@ $daysVI = [
 
                 <?php
                 if (isset($_GET['startdate']) && isset($_GET['enddate']) && isset($_GET['subject']) && isset($_GET['batch']) && isset($_GET['branch'])) {
-                    $sdateString = $_GET['startdate'];
-                    $edateString = $_GET['enddate'];
-                    $subject_code = $_GET['subject'];
-                    $batch = $_GET['batch'];
-                    $branch = $_GET['branch'];
+                    $sdateString = trim((string)$_GET['startdate']);
+                    $edateString = trim((string)$_GET['enddate']);
+                    $subject_code = filter_var($_GET['subject'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                    $batch = trim((string)$_GET['batch']);
+                    $branch = trim((string)$_GET['branch']);
 
-                    $sql = "SELECT * FROM attendance WHERE STR_TO_DATE(`date`, '%Y-%m-%d') BETWEEN STR_TO_DATE('$sdateString', '%Y-%m-%d') AND STR_TO_DATE('$edateString', '%Y-%m-%d') AND `subject_code`=$subject_code AND `batch`='$batch' AND `branch`='$branch' ORDER BY id DESC";
-                    $result = mysqli_query($conn, $sql);
+                    $sdt = $sdateString !== '' ? DateTime::createFromFormat('Y-m-d', $sdateString) : false;
+                    $sdateValid = ($sdt && $sdt->format('Y-m-d') === $sdateString);
+
+                    $edt = $edateString !== '' ? DateTime::createFromFormat('Y-m-d', $edateString) : false;
+                    $edateValid = ($edt && $edt->format('Y-m-d') === $edateString);
+
+                    $batchValid = in_array($batch, ['A1', 'A2', 'A3', 'A4', 'A5'], true);
+                    $branchValid = in_array($branch, ['Computer Engineering', 'Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering'], true);
+
+                    if (!$sdateValid || !$edateValid || $subject_code === false || !$batchValid || !$branchValid) {
+                        echo '<div class="alert alert-danger mb-4" role="alert">Dữ liệu lọc không hợp lệ. Vui lòng kiểm tra lại ngày, môn học, lớp và ngành.</div>';
+                    } else {
+                        $stmt = $conn->prepare("SELECT * FROM attendance WHERE STR_TO_DATE(`date`, '%Y-%m-%d') BETWEEN STR_TO_DATE(?, '%Y-%m-%d') AND STR_TO_DATE(?, '%Y-%m-%d') AND `subject_code` = ? AND `batch` = ? AND `branch` = ? ORDER BY id DESC");
+                        $stmt->bind_param('ssiss', $sdateString, $edateString, $subject_code, $batch, $branch);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
                 ?>
                     <h6>Kết quả lọc: Từ ngày <?php echo ui_h((string)$_GET['startdate']); ?> đến ngày <?php echo ui_h((string)$_GET['enddate']); ?></h6>
                     <table class="table table-bordered table-striped text-center attendance-history-table" id="table">
@@ -155,6 +169,7 @@ $daysVI = [
                         </tbody>
                     </table>
                 <?php
+                    }
                 } else {
                 ?>
                     <table class="table table-bordered table-striped text-center attendance-history-table" id="table">
