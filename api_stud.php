@@ -49,16 +49,32 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] == true) {
 
     if (isset($_GET['type']) && $_GET['type'] == "delete") {
         $enroll = filter_var($_POST['enroll'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $result = $enroll && db_exec('DELETE FROM students WHERE enrollment_no = ?', 'i', [(int)$enroll]) !== false;
-        if ($result) {
-            $_SESSION['msg'] = '<div class="alert alert-success mb-2" role="alert">Xóa sinh viên thành công.</div>';
-            header("location: stud_details.php");
-            exit();
-        } else {
-            $_SESSION['msg'] = '<div class="alert alert-danger mb-2" role="alert">Đã xảy ra lỗi, vui lòng thử lại!</div>';
+        if (!$enroll) {
+            $_SESSION['msg'] = '<div class="alert alert-danger mb-2" role="alert">Mã số sinh viên không hợp lệ.</div>';
             header("location: stud_details.php");
             exit();
         }
+
+        $conn->begin_transaction();
+        try {
+            if (db_exec('DELETE FROM student_passkeys WHERE enrollment_no = ?', 'i', [(int)$enroll]) === false) {
+                throw new RuntimeException('Không thể xóa passkey của sinh viên.');
+            }
+            if (db_exec('DELETE FROM student_face_profiles WHERE enrollment_no = ?', 'i', [(int)$enroll]) === false) {
+                throw new RuntimeException('Không thể xóa hồ sơ khuôn mặt của sinh viên.');
+            }
+            if (db_exec('DELETE FROM students WHERE enrollment_no = ?', 'i', [(int)$enroll]) === false) {
+                throw new RuntimeException('Không thể xóa sinh viên.');
+            }
+            $conn->commit();
+            $_SESSION['msg'] = '<div class="alert alert-success mb-2" role="alert">Xóa sinh viên thành công.</div>';
+        } catch (Throwable $e) {
+            $conn->rollback();
+            error_log('[QRCAS] Student delete failed: ' . $e->getMessage());
+            $_SESSION['msg'] = '<div class="alert alert-danger mb-2" role="alert">Đã xảy ra lỗi, vui lòng thử lại!</div>';
+        }
+        header("location: stud_details.php");
+        exit();
     }
 
     if (isset($_GET['type']) && $_GET['type'] == "update") {
