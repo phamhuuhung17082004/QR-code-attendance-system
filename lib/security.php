@@ -245,5 +245,7 @@ function set_logged_in_session(array $account, string $role): void
         $_SESSION['enrollment_no'] = (int)$account['enrollment_no'];
     } elseif ($role === 'TEACHER') {
         $_SESSION['teacher_id'] = (int)$account['id'];
+    } elseif ($role === 'ADMIN') {
+        $_SESSION['user_id'] = (int)($account['user_id'] ?? 0);
     }
 }
