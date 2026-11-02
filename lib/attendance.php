@@ -213,6 +213,15 @@ function attendance_record(
             throw new RuntimeException('attendance session is no longer active');
         }
 
+        $alreadyAttended = db_val(
+            'SELECT 1 FROM attendance WHERE date = ? AND enrollment_no = ? AND subject_code = ? AND slot = ? AND batch = ? LIMIT 1',
+            'siiis',
+            [$date, $enrollmentNo, (int)$session['subject_code'], (int)$session['slot'], (string)$session['batch']]
+        );
+        if ($alreadyAttended) {
+            throw new RuntimeException('duplicate attendance for this slot');
+        }
+
         // The unique key on this table makes duplicate requests harmless even when
         // two requests arrive at the same time.
         $claim = db_exec(
