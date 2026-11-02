@@ -86,6 +86,108 @@ CREATE TABLE IF NOT EXISTS `attendance_face_verifications` (
   CONSTRAINT `fk_attendance_face_session` FOREIGN KEY (`attendance_session_id`) REFERENCES `attendance_sessions` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE `attendance`
-  ADD COLUMN `attendance_session_id` bigint unsigned NULL AFTER `ip_address`,
-  ADD KEY `idx_attendance_session_student` (`attendance_session_id`, `enrollment_no`);
+-- Bước idempotent thêm cột attendance_session_id vào attendance nếu chưa có
+SET @col_att_sess = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'attendance'
+      AND COLUMN_NAME = 'attendance_session_id'
+);
+
+SET @sql_att_sess = IF(
+    @col_att_sess = 0,
+    "ALTER TABLE `attendance` ADD COLUMN `attendance_session_id` bigint unsigned NULL AFTER `ip_address`",
+    'SELECT 1'
+);
+
+PREPARE stmt_att_sess FROM @sql_att_sess;
+EXECUTE stmt_att_sess;
+DEALLOCATE PREPARE stmt_att_sess;
+
+-- Bước idempotent thêm index idx_attendance_session_student vào attendance nếu chưa có
+SET @idx_att_sess = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'attendance'
+      AND INDEX_NAME = 'idx_attendance_session_student'
+);
+
+SET @sql_idx_att_sess = IF(
+    @idx_att_sess = 0,
+    "ALTER TABLE `attendance` ADD KEY `idx_attendance_session_student` (`attendance_session_id`, `enrollment_no`)",
+    'SELECT 1'
+);
+
+PREPARE stmt_idx_att_sess FROM @sql_idx_att_sess;
+EXECUTE stmt_idx_att_sess;
+DEALLOCATE PREPARE stmt_idx_att_sess;
+
+-- Bước idempotent đặt PRIMARY KEY cho settings nếu chưa có (cần MODIFY id NOT NULL trước)
+UPDATE `settings` SET `id` = 1 WHERE `id` IS NULL LIMIT 1;
+
+SET @has_settings_pk = (
+    SELECT COUNT(*)
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'settings'
+      AND CONSTRAINT_TYPE = 'PRIMARY KEY'
+);
+
+SET @sql_settings_modify = IF(
+    @has_settings_pk = 0,
+    "ALTER TABLE `settings` MODIFY `id` int(11) NOT NULL",
+    'SELECT 1'
+);
+PREPARE stmt_settings_modify FROM @sql_settings_modify;
+EXECUTE stmt_settings_modify;
+DEALLOCATE PREPARE stmt_settings_modify;
+
+SET @sql_settings_pk = IF(
+    @has_settings_pk = 0,
+    "ALTER TABLE `settings` ADD PRIMARY KEY (`id`)",
+    'SELECT 1'
+);
+PREPARE stmt_settings_pk FROM @sql_settings_pk;
+EXECUTE stmt_settings_pk;
+DEALLOCATE PREPARE stmt_settings_pk;
+
+
+-- Dọn trùng điểm danh trước khi thêm UNIQUE KEY: in ra các dòng sẽ bị xóa
+SELECT a.id, a.enrollment_no, a.date, a.subject_code, a.slot, a.batch
+FROM `attendance` a
+INNER JOIN `attendance` b ON a.date = b.date
+  AND a.enrollment_no = b.enrollment_no
+  AND a.subject_code = b.subject_code
+  AND a.slot = b.slot
+  AND a.batch = b.batch
+  AND a.id > b.id;
+
+-- Xóa các dòng trùng, chỉ giữ lại 1 dòng có id nhỏ nhất mỗi nhóm
+DELETE a FROM `attendance` a
+INNER JOIN `attendance` b ON a.date = b.date
+  AND a.enrollment_no = b.enrollment_no
+  AND a.subject_code = b.subject_code
+  AND a.slot = b.slot
+  AND a.batch = b.batch
+  AND a.id > b.id;
+
+-- Bước idempotent thêm UNIQUE KEY uq_attendance_slot_student vào attendance nếu chưa có
+SET @uq_att_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'attendance'
+      AND INDEX_NAME = 'uq_attendance_slot_student'
+);
+
+SET @sql_uq_att = IF(
+    @uq_att_exists = 0,
+    "ALTER TABLE `attendance` ADD UNIQUE KEY `uq_attendance_slot_student` (`date`, `enrollment_no`, `subject_code`, `slot`, `batch`(50))",
+    'SELECT 1'
+);
+
+PREPARE stmt_uq_att FROM @sql_uq_att;
+EXECUTE stmt_uq_att;
+DEALLOCATE PREPARE stmt_uq_att;

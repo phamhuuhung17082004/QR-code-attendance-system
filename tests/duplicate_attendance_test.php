@@ -86,6 +86,26 @@ try {
         throw new RuntimeException("Sub-scenario failed: expected 1 attendance record for student 2, found {$count2}");
     }
 
+    // (e) Trực tiếp chèn dòng trùng bằng SQL và xác nhận DB từ chối qua UNIQUE KEY
+    $rejectedByDb = false;
+    try {
+        $directInsertDuplicate = db_exec(
+            'INSERT INTO attendance (enrollment_no, date, day, subject_code, slot, batch, branch, semester, time, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'issiississ',
+            [$testEnrollment1, $today, $dayName, $testSubjectCode, $testSlot, $testBatch, $testBranch, $testSemester, $nowTime, '127.0.0.1']
+        );
+        if ($directInsertDuplicate === false && db_last_errno() === 1062) {
+            $rejectedByDb = true;
+        }
+    } catch (mysqli_sql_exception $e) {
+        if ((int)$e->getCode() === 1062) {
+            $rejectedByDb = true;
+        }
+    }
+    if (!$rejectedByDb) {
+        throw new RuntimeException("DB test failed: direct duplicate insert via SQL was NOT rejected by database UNIQUE key (1062)");
+    }
+
     echo "[PASS] duplicate_attendance_test: all duplicate scenarios properly rejected, exactly 1 attendance record remained\n";
 } finally {
     // Cleanup attendance and attendance_noti

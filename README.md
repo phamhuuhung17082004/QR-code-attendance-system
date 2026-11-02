@@ -53,7 +53,7 @@ Máy chủ quyết định mọi bước. Trình duyệt chỉ gửi dữ liệu
 | **GPS** | Kiểm tra khoảng cách tới tâm trường và độ chính xác của tín hiệu. Đây là tín hiệu bổ trợ, không phải chốt chặn duy nhất. |
 | **Passkey (WebAuthn)** | Sinh viên xác thực bằng sinh trắc học của thiết bị đã được quản trị viên duyệt. Mỗi sinh viên có tối đa `max_devices` thiết bị (mặc định 2). |
 | **Khuôn mặt + liveness** | Đối chiếu vector khuôn mặt với hồ sơ đã được duyệt, kèm thử thách chớp mắt hoặc quay đầu dùng một lần. |
-| **Chống điểm danh trùng** | Mỗi sinh viên chỉ có một lượt cho mỗi phiên (ràng buộc UNIQUE ở bảng `attendance_claims`), và hệ thống kiểm tra trùng theo ngày, môn, tiết trước khi ghi. |
+| **Chống điểm danh trùng** | Mỗi sinh viên chỉ có một lượt cho mỗi phiên (ràng buộc UNIQUE ở bảng `attendance_claims`). Bảng `attendance` cũng có ràng buộc UNIQUE theo (ngày, sinh viên, môn, tiết, lớp), nên dù có hai phiên cùng tiết hay điểm danh thủ công, một sinh viên vẫn chỉ có một bản ghi. |
 | **Bảo vệ yêu cầu** | Thao tác ghi dữ liệu bắt buộc dùng phương thức POST và mã CSRF. Truy vấn dùng prepared statement. Đăng nhập tạo lại session và bị giới hạn số lần thử sai theo từng cặp (tài khoản, IP). |
 | **Mật khẩu** | Mật khẩu mới dùng `password_hash()`. Mật khẩu cũ (MD5) vẫn đăng nhập được và tự nâng cấp sau lần đăng nhập thành công. |
 
@@ -82,16 +82,13 @@ cd QR-code-attendance-system
 
 **2. Tạo cơ sở dữ liệu**
 
-Tạo CSDL tên `qrattendance`, sau đó nhập lần lượt **đủ 4 file** theo đúng thứ tự:
+Tạo CSDL tên `qrattendance`, sau đó nhập **một file duy nhất**:
 
 ```bash
 mysql -u root -p qrattendance < database.sql
-mysql -u root -p qrattendance < database_security_migration.sql
-mysql -u root -p qrattendance < database_passkey_migration.sql
-mysql -u root -p qrattendance < database_face_approval_migration.sql
 ```
 
-> Thiếu file thứ 4 sẽ làm trang quản lý thiết bị của quản trị viên và chức năng đăng ký khuôn mặt báo lỗi 500, vì bảng `student_face_profiles` chưa có cột `status`.
+> **Nâng cấp từ CSDL cũ?** Hãy **sao lưu trước**, rồi chạy lần lượt `database_security_migration.sql`, `database_passkey_migration.sql` và `database_face_approval_migration.sql`. Cả ba chạy lại nhiều lần không lỗi. Migration bảo mật sẽ tự xóa các dòng điểm danh trùng cũ (giữ lại một dòng cho mỗi nhóm trùng) trước khi tạo ràng buộc UNIQUE, nên bản sao lưu là bắt buộc.
 
 **3. Tạo file cấu hình `.env`** ở thư mục gốc (không đưa file này lên Git):
 
@@ -165,7 +162,6 @@ Hệ thống chống tốt các kiểu gian lận thông thường (chụp QR g�
 - **GPS có thể bị giả.** Tọa độ do trình duyệt báo cáo. Khi `campus_cidrs` để trống, GPS gần như là kiểm tra vị trí duy nhất.
 - **Passkey đồng bộ đám mây.** Passkey lưu trong iCloud Keychain hoặc Google Password Manager có thể dùng được trên thiết bị khác đăng nhập cùng tài khoản đám mây.
 - **Một điện thoại giữ nhiều tài khoản.** Nếu quản trị viên duyệt passkey của nhiều tài khoản trên cùng một điện thoại, điện thoại đó có thể điểm danh hộ cho các tài khoản ấy.
-- **Hai phiên trong cùng một tiết.** Bảng `attendance` chưa có ràng buộc UNIQUE ở mức cơ sở dữ liệu, nên trong trường hợp hiếm hai yêu cầu đến cùng lúc ở hai phiên khác nhau, vẫn có thể phát sinh bản ghi trùng.
 - **Sinh viên dùng 4G/5G.** Khi bật `campus_cidrs`, sinh viên dùng mạng di động sẽ bị từ chối (HTTP 403) và phải kết nối Wi-Fi của trường.
 - **Chưa có chức năng đóng phiên thủ công.** Phiên chỉ kết thúc khi hết hạn.
 

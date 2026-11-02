@@ -37,7 +37,10 @@ if ($action === 'approve') {
     if (!$id) {
         admin_passkey_reply(false, 'Mã định danh thiết bị không hợp lệ.', $isJson);
     }
-    $adminId = (int)($_SESSION['teacher_id'] ?? 0);
+    $adminId = (int)($_SESSION['user_id'] ?? 0);
+    if ($adminId === 0 && !empty($_SESSION['username'])) {
+        $adminId = (int)db_val('SELECT user_id FROM users WHERE username = ? LIMIT 1', 's', [$_SESSION['username']]);
+    }
     $res = db_exec(
         "UPDATE student_passkeys SET status = 'approved', approved_at = NOW(), approved_by = ? WHERE id = ? AND status = 'pending'",
         'ii',
@@ -56,14 +59,16 @@ if ($action === 'approve') {
         admin_passkey_reply(false, 'Mã định danh thiết bị không hợp lệ.', $isJson);
     }
     $res = db_exec(
-        "UPDATE student_passkeys SET status = 'revoked' WHERE id = ?",
+        "UPDATE student_passkeys SET status = 'revoked' WHERE id = ? AND status != 'revoked'",
         'i',
         [(int)$id]
     );
-    if ($res !== false) {
-        admin_passkey_reply(true, 'Đã thu hồi quyền sử dụng thiết bị.', $isJson);
+    if ($res === false) {
+        admin_passkey_reply(false, 'Không thể thu hồi thiết bị. Hãy kiểm tra cơ sở dữ liệu.', $isJson);
+    } elseif ($res === 0) {
+        admin_passkey_reply(false, 'Không tìm thấy thiết bị hoặc đã được thu hồi.', $isJson);
     } else {
-        admin_passkey_reply(false, 'Không thể thu hồi thiết bị.', $isJson);
+        admin_passkey_reply(true, 'Đã thu hồi quyền sử dụng thiết bị.', $isJson);
     }
 } elseif ($action === 'approve_face') {
     $enrollmentNo = filter_var($_POST['enrollment_no'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -92,10 +97,12 @@ if ($action === 'approve') {
         'i',
         [(int)$enrollmentNo]
     );
-    if ($res !== false) {
-        admin_passkey_reply(true, 'Đã xóa mẫu khuôn mặt của sinh viên ' . $enrollmentNo . '. Sinh viên có thể đăng ký lại mẫu mới.', $isJson);
+    if ($res === false) {
+        admin_passkey_reply(false, 'Không thể xóa mẫu khuôn mặt của sinh viên. Hãy kiểm tra cơ sở dữ liệu.', $isJson);
+    } elseif ($res === 0) {
+        admin_passkey_reply(false, 'Sinh viên chưa có mẫu khuôn mặt.', $isJson);
     } else {
-        admin_passkey_reply(false, 'Không thể xóa mẫu khuôn mặt của sinh viên.', $isJson);
+        admin_passkey_reply(true, 'Đã xóa mẫu khuôn mặt của sinh viên ' . $enrollmentNo . '. Sinh viên có thể đăng ký lại mẫu mới.', $isJson);
     }
 } else {
     admin_passkey_reply(false, 'Hành động không hợp lệ.', $isJson);
