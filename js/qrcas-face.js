@@ -17,7 +17,7 @@
     // Có thể tự host các weight tại lib/face-api/models bằng cách gán biến
     // này trước khi nạp file. Mặc định dùng bản cố định trên CDN để tính năng
     // hoạt động ngay cả khi thư mục weight chưa được cài vào dự án.
-    var MODEL_URL = global.QRCAS_FACE_MODEL_URL || 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+    var MODEL_URL = global.QRCAS_FACE_MODEL_URL || 'lib/face-api/models';
     var DET_OPTS = null;
     var loaded = false;
     var stream = null;

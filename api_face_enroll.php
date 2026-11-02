@@ -7,10 +7,10 @@ security_start_session();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, max-age=0');
 
-function face_enroll_response(int $status, bool $ok, string $message): void
+function face_enroll_response(int $status, bool $ok, string $message, array $extra = []): void
 {
     http_response_code($status);
-    echo json_encode(['ok' => $ok, 'message' => $message], JSON_UNESCAPED_UNICODE);
+    echo json_encode(array_merge(['ok' => $ok, 'message' => $message], $extra), JSON_UNESCAPED_UNICODE);
     exit();
 }
 
@@ -33,4 +33,4 @@ if ($descriptors === null) {
 }
 
 $result = face_store_profile((int)$_SESSION['enrollment_no'], $descriptors);
-face_enroll_response($result['ok'] ? 201 : 422, $result['ok'], $result['message']);
+face_enroll_response($result['ok'] ? 201 : 422, $result['ok'], $result['message'], isset($result['status']) ? ['status' => $result['status']] : []);

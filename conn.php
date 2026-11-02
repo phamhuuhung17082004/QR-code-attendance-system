@@ -54,6 +54,8 @@ $env = parseEnv($envFilePath);
 // define('DB_NAME', $env['DB_PASS'] ?? null);
 
 // Or you can access values directly from the $env array
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 try {
     $conn = mysqli_connect(
         $env['DB_HOST'] ?? '',
@@ -67,11 +69,12 @@ try {
     if (!mysqli_set_charset($conn, 'utf8mb4')) {
         throw new RuntimeException(mysqli_error($conn));
     }
+    $tz = date('P');
+    if (!$conn->query("SET time_zone = '$tz'")) {
+        throw new RuntimeException($conn->error);
+    }
 } catch (Throwable $e) {
     error_log('[QRCAS] Database connection failed: ' . $e->getMessage());
     http_response_code(500);
     exit('Không thể kết nối cơ sở dữ liệu. Vui lòng thử lại sau.');
 }
-
-date_default_timezone_set('Asia/Ho_Chi_Minh');
-

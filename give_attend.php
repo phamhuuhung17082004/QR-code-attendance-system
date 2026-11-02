@@ -63,7 +63,7 @@ require __DIR__ . '/header.php';
     </section>
 </main>
 
-<script src="https://rawcdn.githack.com/schmich/instascan-builds/master/instascan.min.js"></script>
+<script src="js/vendor/instascan.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="js/qrcas-face.js"></script>
 <script>

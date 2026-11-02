@@ -11,6 +11,19 @@ if (empty($_SESSION['logged']) || ($_SESSION['usertype'] ?? '') !== 'STUDENT') {
 }
 
 $profile = face_profile((int)$_SESSION['enrollment_no']);
+$faceStatus = $profile['status'] ?? ($profile ? 'approved' : null);
+$bannerClass = 'alert-warning';
+$bannerText = 'Bạn chưa đăng ký khuôn mặt. Việc đăng ký là bắt buộc trước khi điểm danh.';
+if ($profile) {
+    if ($faceStatus === 'pending') {
+        $bannerClass = 'alert-warning';
+        $bannerText = 'Hồ sơ khuôn mặt của bạn đang chờ quản trị viên duyệt.';
+    } else {
+        $bannerClass = 'alert-success';
+        $bannerText = 'Bạn đã đăng ký mẫu khuôn mặt. Bạn có thể đăng ký lại nếu diện mạo thay đổi đáng kể.';
+    }
+}
+
 require __DIR__ . '/header.php';
 ?>
 <div class="container pt-3 px-4 m-0">
@@ -20,8 +33,8 @@ require __DIR__ . '/header.php';
 <div class="container-fluid pt-4 px-4"><div class="row bg-light rounded mx-0"><div class="col-12"><div class="bg-light rounded h-100 p-4">
     <h6>Đăng ký mẫu khuôn mặt</h6>
     <p class="mb-2">Mẫu này dùng để đối chiếu khi điểm danh. Hệ thống chỉ lưu vector đặc trưng 128 chiều, không lưu ảnh webcam gốc.</p>
-    <div class="alert <?= $profile ? 'alert-success' : 'alert-warning' ?>" id="enrollmentStatus">
-        <?= $profile ? 'Bạn đã đăng ký mẫu khuôn mặt. Bạn có thể đăng ký lại nếu diện mạo thay đổi đáng kể.' : 'Bạn chưa đăng ký khuôn mặt. Việc đăng ký là bắt buộc trước khi điểm danh.' ?>
+    <div class="alert <?= $bannerClass ?>" id="enrollmentStatus">
+        <?= htmlspecialchars($bannerText, ENT_QUOTES, 'UTF-8') ?>
     </div>
 
     <div class="row"><div class="col-lg-6">
@@ -108,8 +121,8 @@ require __DIR__ . '/header.php';
             });
             const result = await response.json();
             if (!result.ok) throw new Error(result.message || 'Không thể lưu mẫu khuôn mặt.');
-            document.getElementById('enrollmentStatus').className = 'alert alert-success';
-            document.getElementById('enrollmentStatus').textContent = 'Đã đăng ký mẫu khuôn mặt. Bạn có thể điểm danh bằng QR.';
+            document.getElementById('enrollmentStatus').className = 'alert alert-' + (result.status === 'pending' ? 'warning' : 'success');
+            document.getElementById('enrollmentStatus').textContent = result.message;
             message(result.message, 'success');
         } catch (error) {
             message(error.message || 'Không thể đăng ký khuôn mặt. Hãy kiểm tra camera và thử lại.', 'danger');

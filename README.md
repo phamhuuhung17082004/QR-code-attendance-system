@@ -35,6 +35,8 @@ The QR Code-Based Attendance System is a robust attendance management solution d
 ## Vendored Libraries
 - **lbuchs/WebAuthn v2.2.0** (MIT License): PHP WebAuthn/FIDO2 server library vendored at `lib/webauthn/` (source: https://github.com/lbuchs/WebAuthn).
 - **qrcodejs** (MIT License): Client-side JavaScript QR code generator vendored at `js/vendor/qrcode.min.js` (source: https://github.com/davidshimjs/qrcodejs).
+- **Instascan** (MIT License): Real-time webcam QR code scanner vendored at `js/vendor/instascan.min.js` (source: https://github.com/schmich/instascan-builds).
+- **face-api.js model weights** (MIT License): Pre-trained weights for TinyFaceDetector, FaceLandmark68Net, and FaceRecognitionNet vendored at `lib/face-api/models/` (source: https://github.com/justadudewhohacks/face-api.js).
 
 ## Live Demo
 
@@ -76,6 +78,10 @@ Check out the live demo of the project [here](https://sagarbhoi.in/project-demos
     - Run passkey migration `database_passkey_migration.sql` to create `student_passkeys`:
       ```sh
       mysql -u root -p qrattendance < database_passkey_migration.sql
+      ```
+    - Run face approval migration `database_face_approval_migration.sql` to add approval status to `student_face_profiles`:
+      ```sh
+      mysql -u root -p qrattendance < database_face_approval_migration.sql
       ```
 
 3. **Configure the Application**:
@@ -130,6 +136,17 @@ Check out the live demo of the project [here](https://sagarbhoi.in/project-demos
 1. **Passkey đồng bộ đám mây (Synced Passkeys)**: Passkey đồng bộ qua tài khoản iCloud Keychain (Apple) hoặc Google Password Manager có thể sử dụng được trên các thiết bị khác cùng đăng nhập tài khoản đám mây của người dùng.
 2. **Sinh viên sử dụng mạng dữ liệu di động (4G/5G)**: Khi bật kiểm tra IP Wi-Fi trường (`campus_cidrs`), sinh viên sử dụng 4G/5G sẽ không khớp dải IP của trường và bị từ chối (HTTP 403). Sinh viên bắt buộc phải kết nối vào mạng Wi-Fi của trường để điểm danh.
 3. **Xác thực khuôn mặt phía client**: Việc trích xuất vector khuôn mặt và thử thách cử động (liveness) được thực hiện trên trình duyệt của người dùng (client-side via face-api.js), phụ thuộc vào chất lượng webcam và điều kiện ánh sáng môi trường.
+
+## Checklist trước khi chạy thật (Production Checklist)
+
+Trước khi đưa hệ thống vào vận hành thực tế tại nhà trường, quản trị viên bắt buộc phải hoàn thành các bước kiểm tra và cấu hình sau:
+
+1. **Đổi mật khẩu tài khoản mặc định**: Đổi mật khẩu tài khoản `admin` mặc định (`123`) ngay sau lần đăng nhập đầu tiên. Đồng thời xóa hoặc cập nhật lại mật khẩu các tài khoản dữ liệu mẫu (`147501`, `147502`, giảng viên `3`).
+2. **Cập nhật tọa độ GPS và bán kính hợp lệ**: Cập nhật tọa độ GPS thực tế của trường và bán kính cho phép (`covarage` tính bằng km) trong bảng `settings` (thông qua menu **Cài đặt**). Mặc định trong `database.sql` là tọa độ mẫu tại Ấn Độ, nếu không cập nhật sinh viên sẽ bị từ chối do không nằm trong phạm vi trường.
+3. **Cấu hình dải IP Wi-Fi trường (`campus_cidrs`)**: Nhập danh sách subnet IP Wi-Fi trường (ví dụ `10.0.0.0/16, 172.16.0.0/12, 203.0.113.0/24`) trong cấu hình `campus_cidrs`. Đây là lớp phòng vệ then chốt nhằm ngăn chặn sinh viên sử dụng mạng di động (4G/5G) hoặc điểm danh hộ từ xa.
+4. **Bắt buộc HTTPS và khai báo Relying Party ID**: Bật HTTPS trên web server (bắt buộc để WebAuthn / Passkey hoạt động trên môi trường ngoài `localhost`). Đồng thời khai báo chính xác `WEBAUTHN_RP_ID` trong `.env` tương ứng với domain thực tế (ví dụ: `attendance.university.edu.vn`).
+5. **Đồng bộ múi giờ PHP và MySQL**: Đảm bảo máy chủ MySQL và PHP hoạt động cùng múi giờ (`Asia/Ho_Chi_Minh` / UTC+7). Hệ thống đã có cơ chế tự động gửi `SET time_zone` khi kết nối, nhưng việc thiết lập đúng timezone tại cấu hình gốc của MySQL server sẽ tránh mọi nguy cơ lệch thời gian hết hạn token QR và phiên điểm danh.
+6. **Lưu ý về nhận diện khuôn mặt và liveness client-side**: Cơ chế nhận diện khuôn mặt và phát hiện cử động (liveness challenge) hiện chạy hoàn toàn phía trình duyệt học viên qua `face-api.js`. Sinh viên có kiến thức kỹ thuật có thể can thiệp bằng webcam ảo hoặc gửi trực tiếp vector đặc trưng. Do đó, cơ chế này không thay thế hoàn toàn sự giám sát trực tiếp của giảng viên tại lớp học hoặc các thiết bị quét tập trung chuyên dụng.
 
 ## Usage
 

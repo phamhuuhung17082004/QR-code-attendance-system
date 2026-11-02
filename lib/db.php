@@ -154,14 +154,47 @@ function cfg_set(string $key, string $value): bool
 /* Chống dò mật khẩu                                                   */
 /* ------------------------------------------------------------------ */
 
+const LOGIN_LOCKOUT_PAIR_LIMIT = 8;
+const LOGIN_LOCKOUT_IDENTITY_LIMIT = 30;
+const LOGIN_LOCKOUT_IP_LIMIT = 100;
+
 function login_is_locked(string $identity, string $ip): bool
 {
-    $n = db_val(
-        "SELECT COUNT(*) FROM login_attempts WHERE created_at > (NOW() - INTERVAL 10 MINUTE) AND (ip = ? OR identity = ?)",
+    $pairLimit = LOGIN_LOCKOUT_PAIR_LIMIT;
+    $identityLimit = LOGIN_LOCKOUT_IDENTITY_LIMIT;
+    $ipLimit = LOGIN_LOCKOUT_IP_LIMIT;
+
+    // 1. Khoá theo cặp (identity, ip): >= 8 lần thất bại trong 10 phút
+    $pairCount = (int)db_val(
+        "SELECT COUNT(*) FROM login_attempts WHERE created_at > (NOW() - INTERVAL 10 MINUTE) AND identity = ? AND ip = ?",
         'ss',
-        [$ip, $identity]
+        [$identity, $ip]
     );
-    return (int)$n >= 8;
+    if ($pairCount >= $pairLimit) {
+        return true;
+    }
+
+    // 2. Trần theo identity: >= 30 lần trong 10 phút (chống dò mật khẩu phân tán)
+    $identityCount = (int)db_val(
+        "SELECT COUNT(*) FROM login_attempts WHERE created_at > (NOW() - INTERVAL 10 MINUTE) AND identity = ?",
+        's',
+        [$identity]
+    );
+    if ($identityCount >= $identityLimit) {
+        return true;
+    }
+
+    // 3. Trần theo IP: >= 100 lần trong 10 phút (chặn bão request)
+    $ipCount = (int)db_val(
+        "SELECT COUNT(*) FROM login_attempts WHERE created_at > (NOW() - INTERVAL 10 MINUTE) AND ip = ?",
+        's',
+        [$ip]
+    );
+    if ($ipCount >= $ipLimit) {
+        return true;
+    }
+
+    return false;
 }
 
 function login_record_failure(string $identity, string $ip): void
@@ -175,5 +208,5 @@ function login_record_failure(string $identity, string $ip): void
 
 function login_clear_failures(string $identity, string $ip): void
 {
-    db_exec('DELETE FROM login_attempts WHERE identity = ?', 's', [$identity]);
+    db_exec('DELETE FROM login_attempts WHERE identity = ? AND ip = ?', 'ss', [$identity, $ip]);
 }
