@@ -82,7 +82,7 @@ $daysVI = [
                             $ssresult = mysqli_query($conn, $sssql);
                             while ($erow = mysqli_fetch_array($ssresult)) {
                                 $selected = (string)($erow['subject_code']) === (string)($_GET['subject'] ?? '') ? ' selected' : '';
-                                echo '<option value="' . $erow['subject_code'] . '"' . $selected . '>' . $erow['name'] . '</option>';
+                                echo '<option value="' . (int)$erow['subject_code'] . '"' . $selected . '>' . ui_h((string)$erow['name']) . '</option>';
                             }
                             ?>
                         </select>
@@ -92,7 +92,7 @@ $daysVI = [
                         <select class="form-select" name="batch" id="filterBatch" required>
                             <option value="">Chọn nhóm</option>
                             <?php foreach (['A1', 'A2', 'A3', 'A4', 'A5'] as $batchOption): ?>
-                                <option value="<?= $batchOption ?>"<?= ($batchOption === ($_GET['batch'] ?? '')) ? ' selected' : '' ?>><?= $batchOption ?></option>
+                                <option value="<?= ui_h((string)$batchOption) ?>"<?= ($batchOption === ($_GET['batch'] ?? '')) ? ' selected' : '' ?>><?= ui_h((string)$batchOption) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -111,7 +111,7 @@ $daysVI = [
                     $sql = "SELECT * FROM attendance WHERE STR_TO_DATE(`date`, '%Y-%m-%d') BETWEEN STR_TO_DATE('$sdateString', '%Y-%m-%d') AND STR_TO_DATE('$edateString', '%Y-%m-%d') AND `subject_code`=$subject_code AND `batch`='$batch' AND `branch`='" . $teacher_row['branch'] . "' ORDER BY id DESC";
                     $result = mysqli_query($conn, $sql);
                 ?>
-                    <h6>Kết quả lọc: Từ ngày <?php echo $_GET['startdate']; ?> đến ngày <?php echo $_GET['enddate']; ?></h6>
+                    <h6>Kết quả lọc: Từ ngày <?php echo ui_h((string)$_GET['startdate']); ?> đến ngày <?php echo ui_h((string)$_GET['enddate']); ?></h6>
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped text-center attendance-history-table" id="table">
                             <thead>
@@ -134,24 +134,24 @@ $daysVI = [
                                 ?>
                                     <tr>
                                         <th scope="row"><?php echo $sr; ?></th>
-                                        <td><?php echo $row['enrollment_no']; ?></td>
+                                        <td><?php echo (int)$row['enrollment_no']; ?></td>
                                         <td><?php
-                                            $efssql = "SELECT * FROM `students` WHERE `enrollment_no`=" . $row['enrollment_no'];
+                                            $efssql = "SELECT * FROM `students` WHERE `enrollment_no`=" . (int)$row['enrollment_no'];
                                             $efsresult = mysqli_query($conn, $efssql);
                                             $efsrow = mysqli_fetch_assoc($efsresult);
-                                            echo $efsrow['name'];
+                                            echo ui_h((string)($efsrow['name'] ?? ''));
                                             ?></td>
-                                        <td><?php echo $row['date']; ?></td>
-                                        <td><?php echo isset($daysVI[$row['day']]) ? $daysVI[$row['day']] : $row['day']; ?></td>
+                                        <td><?php echo ui_h((string)$row['date']); ?></td>
+                                        <td><?php echo ui_h($daysVI[$row['day']] ?? $row['day']); ?></td>
                                         <td><?php
-                                            $fssql = "SELECT * FROM `subjects` WHERE `subject_code`=" . $row['subject_code'];
+                                            $fssql = "SELECT * FROM `subjects` WHERE `subject_code`=" . (int)$row['subject_code'];
                                             $fsresult = mysqli_query($conn, $fssql);
                                             $fsrow = mysqli_fetch_assoc($fsresult);
-                                            echo $fsrow['name'];
+                                            echo ui_h((string)($fsrow['name'] ?? ''));
                                             ?></td>
-                                        <td><?php echo $row['slot']; ?></td>
-                                        <td><?php echo $row['batch']; ?></td>
-                                        <td><?php echo $row['time']; ?></td>
+                                        <td><?php echo (int)$row['slot']; ?></td>
+                                        <td><?php echo ui_h((string)$row['batch']); ?></td>
+                                        <td><?php echo ui_h((string)$row['time']); ?></td>
                                     </tr>
                                 <?php
                                     $sr++;
@@ -185,24 +185,24 @@ $daysVI = [
                                 ?>
                                     <tr>
                                         <th scope="row"><?php echo $sr; ?></th>
-                                        <td><?php echo $row['enrollment_no']; ?></td>
+                                        <td><?php echo (int)$row['enrollment_no']; ?></td>
                                         <td><?php
-                                            $efssql = "SELECT * FROM `students` WHERE `enrollment_no`=" . $row['enrollment_no'];
+                                            $efssql = "SELECT * FROM `students` WHERE `enrollment_no`=" . (int)$row['enrollment_no'];
                                             $efsresult = mysqli_query($conn, $efssql);
                                             $efsrow = mysqli_fetch_assoc($efsresult);
-                                            echo $efsrow['name'];
+                                            echo ui_h((string)($efsrow['name'] ?? ''));
                                             ?></td>
-                                        <td><?php echo $row['date']; ?></td>
-                                        <td><?php echo isset($daysVI[$row['day']]) ? $daysVI[$row['day']] : $row['day']; ?></td>
+                                        <td><?php echo ui_h((string)$row['date']); ?></td>
+                                        <td><?php echo ui_h($daysVI[$row['day']] ?? $row['day']); ?></td>
                                         <td><?php
-                                            $fssql = "SELECT * FROM `subjects` WHERE `subject_code`=" . $row['subject_code'];
+                                            $fssql = "SELECT * FROM `subjects` WHERE `subject_code`=" . (int)$row['subject_code'];
                                             $fsresult = mysqli_query($conn, $fssql);
                                             $fsrow = mysqli_fetch_assoc($fsresult);
-                                            echo $fsrow['name'];
+                                            echo ui_h((string)($fsrow['name'] ?? ''));
                                             ?></td>
-                                        <td><?php echo $row['slot']; ?></td>
-                                        <td><?php echo $row['batch']; ?></td>
-                                        <td><?php echo $row['time']; ?></td>
+                                        <td><?php echo (int)$row['slot']; ?></td>
+                                        <td><?php echo ui_h((string)$row['batch']); ?></td>
+                                        <td><?php echo ui_h((string)$row['time']); ?></td>
                                     </tr>
                                 <?php
                                     $sr++;

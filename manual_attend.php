@@ -61,7 +61,7 @@ for ($i = -1; $i <= 1; $i++) {
                         <select class="form-select" name="academic" id="autoSizingSelect">
                             <option value="">-- Chọn năm học --</option>
                             <?php foreach ($academicYears as $year): ?>
-                                <option value="<?php echo $year; ?>"><?php echo $year; ?></option>
+                                <option value="<?php echo ui_h((string)$year); ?>"><?php echo ui_h((string)$year); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -111,10 +111,10 @@ for ($i = -1; $i <= 1; $i++) {
                 ?>
 
                     <h6 class="mb-3 text-center mt-3 text-danger">
-                        Chi tiết thời khóa biểu: Năm học - [<?php echo $_GET['academic']; ?>],
+                        Chi tiết thời khóa biểu: Năm học - [<?php echo ui_h((string)$_GET['academic']); ?>],
                         Ngành - [<?php echo ui_h(ui_branch_label($_GET['branch'])); ?>],
-                        Lớp - [<?php echo $_GET['batch']; ?>],
-                        Học kỳ - [<?php echo $_GET['semester']; ?>]
+                        Lớp - [<?php echo ui_h((string)$_GET['batch']); ?>],
+                        Học kỳ - [<?php echo ui_h((string)$_GET['semester']); ?>]
                     </h6>
 
                     <?php
@@ -150,7 +150,7 @@ for ($i = -1; $i <= 1; $i++) {
                                 <tr>
                                     <th scope="col">Thứ</th>
                                     <?php foreach ($slots as $slot => $slotLabel) : ?>
-                                        <th scope="col"><?php echo $slotLabel; ?></th>
+                                        <th scope="col"><?php echo ui_h((string)$slotLabel); ?></th>
                                     <?php endforeach; ?>
                                 </tr>
                             </thead>
@@ -170,7 +170,7 @@ for ($i = -1; $i <= 1; $i++) {
                                     $dayData = isset($timetable[$day]) ? $timetable[$day] : [];
                                 ?>
                                     <tr>
-                                        <td><?php echo $daysVI[$day]; ?></td>
+                                        <td><?php echo ui_h($daysVI[$day] ?? $day); ?></td>
                                         <?php foreach ($slots as $slot => $slotLabel) : ?>
                                             <td>
                                                 <?php
@@ -179,8 +179,8 @@ for ($i = -1; $i <= 1; $i++) {
                                                     $subjectSQL = "SELECT `name` FROM `subjects` WHERE `subject_code`='$subjectCode'";
                                                     $subjectRes = mysqli_query($conn, $subjectSQL);
                                                     $subjectRow = mysqli_fetch_assoc($subjectRes);
-                                                    echo $subjectRow['name'];
-                                                    echo '<a href="give_manual_attend.php?subject_code=' . $subjectCode . '&slot=' . $slot . '&batch=' . $batch . '&semester=' . $semester . '&branch=' . $branch . '&day=' . $day . '" title="Điểm danh"><i class="fas fa-clipboard-check ms-2"></i></a>';
+                                                    echo ui_h((string)($subjectRow['name'] ?? ''));
+                                                    echo '<a href="give_manual_attend.php?subject_code=' . urlencode((string)$subjectCode) . '&slot=' . urlencode((string)$slot) . '&batch=' . urlencode((string)$batch) . '&semester=' . urlencode((string)$semester) . '&branch=' . urlencode((string)$branch) . '&day=' . urlencode((string)$day) . '" title="Điểm danh"><i class="fas fa-clipboard-check ms-2"></i></a>';
                                                 }
                                                 ?>
                                             </td>
@@ -198,9 +198,6 @@ for ($i = -1; $i <= 1; $i++) {
     </div>
 </div>
 <!-- Nội dung chính kết thúc -->
-
-
-
 
 <?php
 require('footer.php');

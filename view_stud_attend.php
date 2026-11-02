@@ -9,7 +9,7 @@ if ($_SESSION['usertype'] != 'STUDENT') {
     exit();
 }
 
-$enrollment_no = $_SESSION['enrollment_no'];
+$enrollment_no = (int)$_SESSION['enrollment_no'];
 $sql = "SELECT * FROM `attendance` WHERE `enrollment_no`= $enrollment_no ORDER BY id DESC";
 $result = mysqli_query($conn, $sql);
 
@@ -71,17 +71,17 @@ $daysVI = [
                             ?>
                                 <tr>
                                     <th scope="row"><?php echo $sr; ?></th>
-                                    <td><?php echo $row['date']; ?></td>
-                                    <td><?php echo isset($daysVI[$row['day']]) ? $daysVI[$row['day']] : $row['day']; ?></td>
+                                    <td><?php echo ui_h((string)$row['date']); ?></td>
+                                    <td><?php echo ui_h($daysVI[$row['day']] ?? $row['day']); ?></td>
                                     <td><?php
-                                        $fssql = "SELECT * FROM `subjects` WHERE `subject_code`=" . $row['subject_code'];
+                                        $fssql = "SELECT * FROM `subjects` WHERE `subject_code`=" . (int)$row['subject_code'];
                                         $fsresult = mysqli_query($conn, $fssql);
                                         $fsrow = mysqli_fetch_assoc($fsresult);
-                                        echo $fsrow['name'];
+                                        echo ui_h((string)($fsrow['name'] ?? ''));
                                         ?></td>
-                                    <td><?php echo $row['slot']; ?></td>
-                                    <td><?php echo $row['batch']; ?></td>
-                                    <td><?php echo $row['time']; ?></td>
+                                    <td><?php echo (int)$row['slot']; ?></td>
+                                    <td><?php echo ui_h((string)$row['batch']); ?></td>
+                                    <td><?php echo ui_h((string)$row['time']); ?></td>
                                 </tr>
                             <?php
                                 $sr++;

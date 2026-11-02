@@ -1,12 +1,23 @@
 <?php
-require('header.php');
-require('conn.php');
+require_once __DIR__ . '/conn.php';
+require_once __DIR__ . '/lib/security.php';
+require_once __DIR__ . '/lib/db.php';
+security_start_session();
 
-if ($_SESSION['usertype'] != 'ADMIN') {
-    session_destroy();
+if (empty($_SESSION['logged']) || ($_SESSION['usertype'] ?? '') !== 'ADMIN') {
     header("location: login.php");
     exit();
 }
+
+$enroll = filter_var($_GET['enroll'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$row = $enroll ? db_row('SELECT * FROM students WHERE enrollment_no = ?', 'i', [(int)$enroll]) : null;
+if (!$row) {
+    $_SESSION['msg'] = '<div class="alert alert-danger mb-2" role="alert">Không tìm thấy bản ghi.</div>';
+    header("Location: stud_details.php");
+    exit();
+}
+
+require('header.php');
 ?>
 <div class="container pt-3 px-4 m-0">
     <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
@@ -22,16 +33,6 @@ if ($_SESSION['usertype'] != 'ADMIN') {
 
 <!-- Nội dung chính Bắt đầu -->
 <div class="container-fluid pt-4 px-4">
-    <?php
-    if (isset($_GET['enroll'])) {
-        $enroll = mysqli_escape_string($conn, $_GET['enroll']);
-        $sql = "SELECT * FROM students WHERE enrollment_no='$enroll'";
-        $result = mysqli_query($conn, $sql);
-        $row = mysqli_fetch_assoc($result);
-    }
-    ?>
-
-
     <div class="row bg-light rounded mx-0">
         <div class="col-12">
             <div class="bg-light rounded h-100 p-4">
@@ -40,19 +41,19 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                     <div class="row mb-3">
                         <label for="inputEmail3" class="col-sm-3 col-form-label">Mã số sinh viên</label>
                         <div class="col-sm-9">
-                            <input type="text" name="enrollmentno" class="form-control" value="<?php echo $enroll; ?>" id="inputEmail3" readonly>
+                            <input type="text" name="enrollmentno" class="form-control" value="<?php echo (int)$enroll; ?>" id="inputEmail3" readonly>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <label for="inputPassword3" class="col-sm-3 col-form-label">Họ và tên sinh viên</label>
                         <div class="col-sm-9">
-                            <input type="text" name="studentname" value="<?php echo $row['name']; ?>" class="form-control" id="inputPassword3">
+                            <input type="text" name="studentname" value="<?php echo ui_h((string)$row['name']); ?>" class="form-control" id="inputPassword3">
                         </div>
                     </div>
                     <div class="row mb-3">
                         <label for="inputPassword3" class="col-sm-3 col-form-label">Chọn học kỳ</label>
                         <div class="col-sm-9">
-                            <select class="form-select" name="semester" value="<?php echo $row['semester']; ?>" required>
+                            <select class="form-select" name="semester" value="<?php echo (int)$row['semester']; ?>" required>
                                 <option selected="">-- Chọn học kỳ --</option>
                                 <option value="1" <?php if ($row['semester'] == '1') echo ' selected="selected"'; ?>>Học kỳ 1</option>
                                 <option value="2" <?php if ($row['semester'] == '2') echo ' selected="selected"'; ?>>Học kỳ 2</option>
@@ -68,7 +69,7 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                     <div class="row mb-3">
                         <label for="inputPassword3" class="col-sm-3 col-form-label">Khoa/Ngành</label>
                         <div class="col-sm-9">
-                            <select class="form-select" name="branch" value="<?php echo $row['branch']; ?>" required>
+                            <select class="form-select" name="branch" value="<?php echo ui_h((string)$row['branch']); ?>" required>
                                 <option selected="">-- Chọn khoa/ngành --</option>
                                 <option value="Computer Engineering" <?php if ($row['branch'] == 'Computer Engineering') echo ' selected="selected"'; ?>>Kỹ thuật máy tính</option>
                                 <option value="Mechanical Engineering" <?php if ($row['branch'] == 'Mechanical Engineering') echo ' selected="selected"'; ?>>Kỹ thuật cơ khí</option>
@@ -80,7 +81,7 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                     <div class="row mb-3">
                         <label for="inputPassword3" class="col-sm-3 col-form-label">Ca học</label>
                         <div class="col-sm-9">
-                            <select class="form-select" name="shift" value="<?php echo $row['shift']; ?>" required>
+                            <select class="form-select" name="shift" value="<?php echo ui_h((string)$row['shift']); ?>" required>
                                 <option selected="">-- Chọn ca học --</option>
                                 <option value="1" <?php if ($row['shift'] == '1') echo ' selected="selected"'; ?>>Ca 1</option>
                                 <option value="2" <?php if ($row['shift'] == '2') echo ' selected="selected"'; ?>>Ca 2</option>
@@ -91,13 +92,13 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                     <div class="row mb-3">
                         <label for="inputPassword3" class="col-sm-3 col-form-label">Số thứ tự</label>
                         <div class="col-sm-9">
-                            <input type="text" name="rollno" class="form-control" value="<?php echo $row['roll_no']; ?>">
+                            <input type="text" name="rollno" class="form-control" value="<?php echo ui_h((string)$row['roll_no']); ?>">
                         </div>
                     </div>
                     <div class="row mb-3">
                         <label for="inputPassword3" class="col-sm-3 col-form-label">Chọn nhóm</label>
                         <div class="col-sm-9">
-                            <select class="form-select" name="batch" value="<?php echo $row['batch']; ?>" required>
+                            <select class="form-select" name="batch" value="<?php echo ui_h((string)$row['batch']); ?>" required>
                                 <option selected="">-- Chọn nhóm --</option>
                                 <option value="A1" <?php if ($row['batch'] == 'A1') echo ' selected="selected"'; ?>>A1</option>
                                 <option value="A2" <?php if ($row['batch'] == 'A2') echo ' selected="selected"'; ?>>A2</option>

@@ -55,15 +55,15 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                             while ($row = mysqli_fetch_assoc($result)) {
                             ?>
                                 <tr>
-                                    <th scope="row"><?php echo $row['subject_code']; ?></th>
-                                    <td><?php echo $row['name']; ?></td>
-                                    <td><?php echo $row['abbreviation']; ?></td>
-                                    <td><?php echo $row['semester']; ?></td>
+                                    <th scope="row"><?php echo (int)$row['subject_code']; ?></th>
+                                    <td><?php echo ui_h((string)$row['name']); ?></td>
+                                    <td><?php echo ui_h((string)$row['abbreviation']); ?></td>
+                                    <td><?php echo (int)$row['semester']; ?></td>
                                     <td><?php echo ui_h(ui_branch_label($row['branch'])); ?></td>
-                                    <td><?php echo $row['teacher_id']; ?></td>
+                                    <td><?php echo (int)$row['teacher_id']; ?></td>
                                     <td>
-                                        <button type="button" onclick="updatestud('<?php echo $row['subject_code']; ?>')" class="btn btn-square btn-outline-danger btn-sm" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
-                                        <button type="button" onclick="deletestud('<?php echo $row['subject_code']; ?>')" class="btn btn-square btn-outline-success btn-sm" title="Xóa"><i class="fas fa-trash"></i></button>
+                                        <button type="button" onclick="updatestud(<?php echo (int)$row['subject_code']; ?>)" class="btn btn-square btn-outline-danger btn-sm" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
+                                        <button type="button" onclick="deletestud(<?php echo (int)$row['subject_code']; ?>)" class="btn btn-square btn-outline-success btn-sm" title="Xóa"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                             <?php
@@ -148,7 +148,7 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                                         $tresult = mysqli_query($conn, $tsql);
                                         while ($trow = mysqli_fetch_assoc($tresult)) {
                                         ?>
-                                            <option value="<?php echo $trow['id']; ?>"><?php echo $trow['name']; ?></option>
+                                            <option value="<?php echo (int)$trow['id']; ?>"><?php echo ui_h((string)$trow['name']); ?></option>
                                         <?php
                                         }
                                         ?>

@@ -56,15 +56,15 @@ if ($_SESSION['usertype'] != 'ADMIN') {
                             while ($row = mysqli_fetch_assoc($result)) {
                             ?>
                                 <tr>
-                                    <th scope="row"><?php echo $row['enrollment_no']; ?></th>
-                                    <td><?php echo $row['name']; ?></td>
-                                    <td><?php echo $row['semester']; ?></td>
+                                    <th scope="row"><?php echo (int)$row['enrollment_no']; ?></th>
+                                    <td><?php echo ui_h((string)$row['name']); ?></td>
+                                    <td><?php echo (int)$row['semester']; ?></td>
                                     <td><?php echo ui_h(ui_branch_label($row['branch'])); ?></td>
-                                    <td><?php echo $row['roll_no']; ?></td>
-                                    <td><?php echo $row['batch']; ?></td>
+                                    <td><?php echo (int)$row['roll_no']; ?></td>
+                                    <td><?php echo ui_h((string)$row['batch']); ?></td>
                                     <td>
-                                        <button type="button" onclick="updatestud('<?php echo $row['enrollment_no']; ?>')" class="btn btn-square btn-outline-danger btn-sm" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
-                                        <button type="button" onclick="deletestud('<?php echo $row['enrollment_no']; ?>')" class="btn btn-square btn-outline-success btn-sm" title="Xóa"><i class="fas fa-trash"></i></button>
+                                        <button type="button" onclick="updatestud(<?php echo (int)$row['enrollment_no']; ?>)" class="btn btn-square btn-outline-danger btn-sm" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
+                                        <button type="button" onclick="deletestud(<?php echo (int)$row['enrollment_no']; ?>)" class="btn btn-square btn-outline-success btn-sm" title="Xóa"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                             <?php
