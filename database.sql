@@ -383,6 +383,7 @@ CREATE TABLE `student_passkeys` (
 --
 ALTER TABLE `attendance`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_attendance_slot_student` (`date`, `enrollment_no`, `subject_code`, `slot`, `batch`(50)),
   ADD KEY `idx_attendance_session_student` (`attendance_session_id`, `enrollment_no`);
 
 --

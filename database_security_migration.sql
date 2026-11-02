@@ -152,3 +152,42 @@ SET @sql_settings_pk = IF(
 PREPARE stmt_settings_pk FROM @sql_settings_pk;
 EXECUTE stmt_settings_pk;
 DEALLOCATE PREPARE stmt_settings_pk;
+
+
+-- Dọn trùng điểm danh trước khi thêm UNIQUE KEY: in ra các dòng sẽ bị xóa
+SELECT a.id, a.enrollment_no, a.date, a.subject_code, a.slot, a.batch
+FROM `attendance` a
+INNER JOIN `attendance` b ON a.date = b.date
+  AND a.enrollment_no = b.enrollment_no
+  AND a.subject_code = b.subject_code
+  AND a.slot = b.slot
+  AND a.batch = b.batch
+  AND a.id > b.id;
+
+-- Xóa các dòng trùng, chỉ giữ lại 1 dòng có id nhỏ nhất mỗi nhóm
+DELETE a FROM `attendance` a
+INNER JOIN `attendance` b ON a.date = b.date
+  AND a.enrollment_no = b.enrollment_no
+  AND a.subject_code = b.subject_code
+  AND a.slot = b.slot
+  AND a.batch = b.batch
+  AND a.id > b.id;
+
+-- Bước idempotent thêm UNIQUE KEY uq_attendance_slot_student vào attendance nếu chưa có
+SET @uq_att_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'attendance'
+      AND INDEX_NAME = 'uq_attendance_slot_student'
+);
+
+SET @sql_uq_att = IF(
+    @uq_att_exists = 0,
+    "ALTER TABLE `attendance` ADD UNIQUE KEY `uq_attendance_slot_student` (`date`, `enrollment_no`, `subject_code`, `slot`, `batch`(50))",
+    'SELECT 1'
+);
+
+PREPARE stmt_uq_att FROM @sql_uq_att;
+EXECUTE stmt_uq_att;
+DEALLOCATE PREPARE stmt_uq_att;

@@ -172,6 +172,11 @@ function attendance_session_from_token(string $token): ?array
     );
 }
 
+function attendance_last_error(): string
+{
+    return (string)($GLOBALS['qrcas_attendance_last_error'] ?? '');
+}
+
 /** Trả về phiên điểm danh còn đang mở. */
 function attendance_active_session(int $sessionId): ?array
 {
@@ -195,6 +200,7 @@ function attendance_record(
 ): bool
 {
     global $conn;
+    $GLOBALS['qrcas_attendance_last_error'] = '';
     $now = new DateTimeImmutable('now');
     $date = $now->format('Y-m-d');
     $day = $now->format('l');
@@ -219,6 +225,7 @@ function attendance_record(
             [$date, $enrollmentNo, (int)$session['subject_code'], (int)$session['slot'], (string)$session['batch']]
         );
         if ($alreadyAttended) {
+            $GLOBALS['qrcas_attendance_last_error'] = 'đã điểm danh trước đó';
             throw new RuntimeException('duplicate attendance for this slot');
         }
 
@@ -270,6 +277,10 @@ function attendance_record(
             ]
         );
         if ($saved === false) {
+            if (db_last_errno() === 1062) {
+                $GLOBALS['qrcas_attendance_last_error'] = 'đã điểm danh trước đó';
+                throw new RuntimeException('duplicate attendance for this slot');
+            }
             throw new RuntimeException('attendance insert failed');
         }
 
@@ -297,6 +308,9 @@ function attendance_record(
         return true;
     } catch (Throwable $e) {
         $conn->rollback();
+        if (empty($GLOBALS['qrcas_attendance_last_error'])) {
+            $GLOBALS['qrcas_attendance_last_error'] = $e->getMessage();
+        }
         return false;
     }
 }

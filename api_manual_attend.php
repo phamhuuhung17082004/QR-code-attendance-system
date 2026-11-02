@@ -51,7 +51,7 @@ foreach (array_unique($students) as $value) {
     }
     $exists = db_val('SELECT 1 FROM attendance WHERE date = ? AND enrollment_no = ? AND subject_code = ? AND slot = ? AND batch = ? LIMIT 1', 'siiis', [$date, (int)$enrollmentNo, (int)$subjectCode, (int)$slot, $batch]);
     if ($exists) {
-        $failed[$enrollmentNo] = 'Sinh viên đã được điểm danh.';
+        $failed[$enrollmentNo] = 'Sinh viên đã được điểm danh trước đó.';
         continue;
     }
     $saved = db_exec(
@@ -60,7 +60,11 @@ foreach (array_unique($students) as $value) {
         [(int)$enrollmentNo, $date, $dateObject->format('l'), (int)$subjectCode, (int)$slot, $batch, $branch, (int)$semester, $timeObject->format('H:i:s'), $ipAddress]
     );
     if ($saved === false) {
-        $failed[$enrollmentNo] = 'Không thể ghi nhận điểm danh.';
+        if (db_last_errno() === 1062) {
+            $failed[$enrollmentNo] = 'Sinh viên đã được điểm danh trước đó.';
+        } else {
+            $failed[$enrollmentNo] = 'Không thể ghi nhận điểm danh.';
+        }
     } else {
         $success[$enrollmentNo] = 'Điểm danh thành công.';
     }
