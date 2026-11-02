@@ -67,20 +67,14 @@ Check out the live demo of the project [here](https://sagarbhoi.in/project-demos
 
 2. **Setup MySQL Database**:
     - Create a new database named `qrattendance`.
-    - Import `database.sql` to set up base tables:
+    - **Cài đặt mới (Fresh installation)**: Chỉ cần import file `database.sql` (đã chứa toàn bộ cấu trúc đầy đủ của hệ thống):
       ```sh
       mysql -u root -p qrattendance < database.sql
       ```
-    - Run security migration `database_security_migration.sql`:
+    - **Nâng cấp từ cơ sở dữ liệu cũ (Legacy upgrade)**: Nếu nâng cấp từ bản cũ, chạy tuần tự 3 file migration:
       ```sh
       mysql -u root -p qrattendance < database_security_migration.sql
-      ```
-    - Run passkey migration `database_passkey_migration.sql` to create `student_passkeys`:
-      ```sh
       mysql -u root -p qrattendance < database_passkey_migration.sql
-      ```
-    - Run face approval migration `database_face_approval_migration.sql` to add approval status to `student_face_profiles`:
-      ```sh
       mysql -u root -p qrattendance < database_face_approval_migration.sql
       ```
 
